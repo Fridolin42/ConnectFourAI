@@ -1,19 +1,54 @@
 package de.fridolin1
 
 import de.fridolin1.ai.AI
+import de.fridolin1.ai.ActivationFunctions
+import de.fridolin1.ai.Perceptron
 import de.fridolin1.connectGame.ConnectGame
 import de.fridolin1.connectGame.FieldStatus
 import java.util.*
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 fun main() {
-    val ai = AI()
-    ai.saveAI("connect4AiV1BeforeTraining")
-    trainAI(ai)
-    ai.saveAI("connect4AiV1AfterTraining")
-    playAiGame(ai)
-//    playGameVsAI(ai)
-//    playHumanGame(true)
+    val perceptron = Perceptron(3, ActivationFunctions.HEAVISIDE)
+
+    val data = listOf(
+        formatColor(255, 153, 51, true),
+        formatColor(255, 204, 0, true),
+        formatColor(255, 102, 0, true),
+        formatColor(255, 153, 0, true),
+        formatColor(204, 102, 0, true),
+        formatColor(255, 204, 102, true),
+        formatColor(102, 102, 51, false),
+        formatColor(153, 255, 102, false),
+        formatColor(0, 255, 153, false),
+        formatColor(102, 204, 255, false),
+        formatColor(51, 51, 255, false),
+        formatColor(153, 102, 255, false),
+        formatColor(153, 0, 153, false),
+        formatColor(255, 153, 153, false),
+        formatColor(102, 0, 51, false),
+        formatColor(255, 0, 0, false),
+        formatColor(0, 255, 0, false),
+        formatColor(200, 0, 0, false),
+        formatColor(0, 200, 0, false),
+        formatColor(128, 255, 0, false),
+        formatColor(32, 255, 0, false),
+    )
+
+    repeat(128) {
+        perceptron.train(data)
+    }
+
+    println(perceptron.weights.contentToString())
+    println(perceptron.bias)
+
+    var correct = 0
+    data.forEach { if (perceptron.predict(it.first) == it.second) correct++ else println("Wrong: ${it.second}") }
+    println("$correct/${data.size}")
+}
+
+fun formatColor(r: Int, g: Int, b: Int, isOrange: Boolean): Pair<Array<Double>, Double> {
+    return Pair(arrayOf(r / 255.0, g / 255.0, b / 255.0), if (isOrange) 1.0 else 0.0)
 }
 
 fun playHumanGame(hints: Boolean) {
