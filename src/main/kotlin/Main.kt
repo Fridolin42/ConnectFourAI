@@ -8,62 +8,75 @@ import java.io.File
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.math.pow
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
+@OptIn(ExperimentalAtomicApi::class)
 fun main() {
-    val ann = ANN(6 * 7 + 1, 43, 215, 215, 215, 215, 7)
+    val ann = ANN(6 * 7 + 1, 43, 86, 129, 86, 7)
 
-    val executor = Executors.newWorkStealingPool()
-    val iterations = 2.0.pow(16)
+    val iterations = 750.0
+    println("Iterations: ${iterations.toInt()}")
+
     repeat(iterations.toInt()) {
-        val p = (it / iterations) * 100
+        val p = it / iterations * 100
         print("\rProgress: %.4f%%".format(p))
 
-        executor.submit {
-            val rl1 = ReinforcedLearning(ann, 0.9)
-            val rl2 = ReinforcedLearning(ann, 0.9)
-            repeat(128) {
-                val game = ConnectGame()
-                while (game.running) {
+        val executor = Executors.newWorkStealingPool()
+        val annList = Collections.synchronizedList(mutableListOf<ANN>())
 
-                    if (game.currentPlayer == game.firstPlayer) {
-                        var action = rl1.step(getInputNeurons(game))
-                        if (!game.drop(action)) {
-                            action = game.randomDrop()
-                            rl1.overrideLastAction(action)
-                        }
-                    } else {
-                        var action = rl2.step(getInputNeurons(game))
-                        if (!game.drop(action)) {
-                            action = game.randomDrop()
-                            rl2.overrideLastAction(action)
-                        }
-                    }
-
-                }
-                if (game.victory) {
-                    if (game.currentPlayer == game.firstPlayer) {
-                        rl1.reward(1.0)
-                        rl2.reward(-1.0)
-                    } else {
-                        rl1.reward(-1.0)
-                        rl2.reward(1.0)
-                    }
-                }
-                rl1.clearBuffer()
-                rl2.clearBuffer()
+        repeat(60) {
+            executor.submit {
+                val rl1 = ReinforcedLearning(ann.clone(), 0.9)
+                val rl2 = ReinforcedLearning(ann.clone(), 0.9)
+                trainAI(rl1, rl2)
+                annList.add(rl1.ann)
+                annList.add(rl2.ann)
             }
         }
+
+        executor.shutdown()
+        executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
+
+        ann.setWeightsToAVG(annList)
     }
-    executor.shutdown()
-    executor.awaitTermination(5, TimeUnit.SECONDS)
+
     println("\nDone")
-
     save(ann, "fourWinnsAiV1.json")
-
     println("Ai saved")
 
     playAgainstAI(ann)
+}
+
+fun trainAI(rl1: ReinforcedLearning, rl2: ReinforcedLearning) {
+    repeat(16) {
+        val game = ConnectGame()
+        while (game.running) {
+
+            if (game.currentPlayer == game.firstPlayer) {
+                var action = rl1.step(getInputNeurons(game))
+                if (!game.drop(action)) {
+                    action = game.randomDrop()
+                    rl1.overrideLastAction(action)
+                }
+            } else {
+                var action = rl2.step(getInputNeurons(game))
+                if (!game.drop(action)) {
+                    action = game.randomDrop()
+                    rl2.overrideLastAction(action)
+                }
+            }
+
+        }
+        if (game.victory) {
+            if (game.currentPlayer == game.firstPlayer) {
+                rl1.reward(1.0)
+                rl2.reward(-1.0)
+            } else {
+                rl1.reward(-1.0)
+                rl2.reward(1.0)
+            }
+        }
+    }
 }
 
 fun playAgainstAI(ann: ANN) {

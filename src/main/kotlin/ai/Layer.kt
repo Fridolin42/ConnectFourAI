@@ -3,8 +3,27 @@ package de.fridolin1.ai
 import kotlinx.serialization.Serializable
 
 @Serializable
-class Layer(val perceptronAmount: Int, val inputVectorDimension: Int) {
-    val perceptrons = Array(perceptronAmount) { Perceptron(inputVectorDimension) }
+class Layer : Cloneable {
+    val perceptrons: Array<Perceptron>
+    val perceptronAmount: Int
+    val inputVectorDimension: Int
+
+    constructor(perceptronAmount: Int, inputVectorDimension: Int) {
+        this.perceptrons = Array(perceptronAmount) { Perceptron(inputVectorDimension) }
+        this.perceptronAmount = perceptronAmount
+        this.inputVectorDimension = inputVectorDimension
+    }
+
+    constructor(perceptrons: Array<Perceptron>, perceptronAmount: Int, inputVectorDimension: Int) {
+        this.perceptrons = perceptrons
+        this.perceptronAmount = perceptronAmount
+        this.inputVectorDimension = inputVectorDimension
+    }
+
+    public override fun clone(): Layer {
+        return Layer(perceptrons.map { it.clone() }.toTypedArray(), perceptronAmount, inputVectorDimension)
+    }
+
     fun compute(inputVector: Array<Double>): Array<Double> {
         if (inputVector.size != inputVectorDimension) throw IllegalArgumentException("Input vector must have $inputVectorDimension dimension, but has ${inputVector.size} dimension")
         val outputVector = Array(perceptronAmount) { perceptrons[it].predict(inputVector) }
@@ -33,5 +52,15 @@ class Layer(val perceptronAmount: Int, val inputVectorDimension: Int) {
         builder.append("Perceptrons: $perceptronAmount ")
         perceptrons.forEach { builder.append(it).append("; ") }
         return builder.toString()
+    }
+
+    fun setWeightsToAVG(list: List<Layer>) {
+        for (i in perceptrons.indices) {
+            val perceptronList = mutableListOf<Perceptron>()
+            for (j in list.indices) {
+                perceptronList.add(list[j].perceptrons[i])
+            }
+            perceptrons[i].setWeightsToAVG(perceptronList)
+        }
     }
 }

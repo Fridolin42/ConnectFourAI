@@ -3,12 +3,30 @@ package de.fridolin1.ai
 import kotlinx.serialization.Serializable
 
 @Serializable
-class ANN(val inputVectorDimension: Int, vararg val neurons: Int) {
-    val layers = Array(neurons.size) {
-        Layer(
-            neurons[it],
-            if (it == 0) inputVectorDimension else neurons[it - 1]
-        )
+class ANN : Cloneable {
+    val layers: Array<Layer>
+    val inputVectorDimension: Int
+    val neurons: IntArray
+
+    constructor(inputVectorDimension: Int, vararg neurons: Int) {
+        this.inputVectorDimension = inputVectorDimension
+        this.neurons = neurons
+        this.layers = Array(neurons.size) {
+            Layer(
+                neurons[it],
+                if (it == 0) inputVectorDimension else neurons[it - 1]
+            )
+        }
+    }
+
+    constructor(layers: Array<Layer>, inputVectorDimension: Int, vararg neurons: Int) {
+        this.inputVectorDimension = inputVectorDimension
+        this.neurons = neurons
+        this.layers = layers
+    }
+
+    public override fun clone(): ANN {
+        return ANN(layers.map { it.clone() }.toTypedArray(), inputVectorDimension, *neurons.copyOf())
     }
 
     fun compute(inputVector: Array<Double>): Array<Double> {
@@ -37,6 +55,16 @@ class ANN(val inputVectorDimension: Int, vararg val neurons: Int) {
                 currentVector =
                     layer.train(inAndOutputVectors[i], currentVector, inAndOutputVectors[i + 1], i == layers.size - 1)
             }
+        }
+    }
+
+    fun setWeightsToAVG(list: List<ANN>) {
+        for (i in layers.indices) {
+            val layerList = mutableListOf<Layer>()
+            for (j in list.indices) {
+                layerList.add(list[j].layers[i])
+            }
+            layers[i].setWeightsToAVG(layerList)
         }
     }
 

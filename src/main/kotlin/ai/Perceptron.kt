@@ -5,7 +5,7 @@ import kotlin.math.pow
 import kotlin.random.Random
 
 @Serializable
-class Perceptron(val dimension: Int) {
+class Perceptron : Cloneable {
     companion object {
         const val ALPHA = 0.01
     }
@@ -15,7 +15,23 @@ class Perceptron(val dimension: Int) {
     }
 
     var bias = 0.0
-    val weights = Array(dimension) { Random.nextDouble(0.8, 1.25) / dimension }
+    val weights: Array<Double>
+    val dimension: Int
+
+    constructor(dimension: Int) {
+        this.dimension = dimension
+        this.weights = Array(dimension) { Random.nextDouble(0.8, 1.25) / dimension }
+    }
+
+    constructor(dimension: Int, bias: Double, weights: Array<Double>) {
+        this.bias = bias
+        this.weights = weights
+        this.dimension = dimension
+    }
+
+    public override fun clone(): Perceptron {
+        return Perceptron(dimension, bias, weights.copyOf())
+    }
 
     fun predict(inputVector: Array<Double>): Double {
         if (inputVector.size != dimension) throw IllegalArgumentException("Input vector must have $dimension dimension, but has ${inputVector.size} dimension")
@@ -50,4 +66,18 @@ class Perceptron(val dimension: Int) {
         return "Perceptron(dimension=$dimension, bias=$bias, weights=${weights.contentToString()})"
     }
 
+    fun setWeightsToAVG(list: List<Perceptron>) {
+        for (i in weights.indices) {
+            weights[i] = 0.0
+            for (j in list.indices) {
+                weights[i] += list[j].weights[i]
+            }
+            weights[i] /= list.size
+        }
+        bias = 0.0
+        for (i in list.indices) {
+            bias += list[i].bias
+        }
+        bias /= list.size
+    }
 }
