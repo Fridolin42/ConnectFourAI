@@ -1,12 +1,17 @@
 package de.fridolin1.ai
 
-import kotlin.math.max
+import kotlinx.serialization.Serializable
 import kotlin.math.pow
 import kotlin.random.Random
 
-class Perceptron(val dimension: Int, val activationFunctions: ActivationFunctions) {
+@Serializable
+class Perceptron(val dimension: Int) {
     companion object {
         const val ALPHA = 0.01
+    }
+
+    fun sigmoid(x: Double): Double {
+        return 1 / (1 + Math.E.pow(-x))
     }
 
     var bias = 0.0
@@ -15,33 +20,34 @@ class Perceptron(val dimension: Int, val activationFunctions: ActivationFunction
     fun predict(inputVector: Array<Double>): Double {
         if (inputVector.size != dimension) throw IllegalArgumentException("Input vector must have $dimension dimension, but has ${inputVector.size} dimension")
         val sum = inputVector.mapIndexed { index, value -> value * weights[index] }.sum() + bias
-        return activationFunctions.function(sum)
+        return sigmoid(sum)
+    }
+
+    fun train(input: Array<Double>, targetOrError: Double, actualResult: Double, outputLayer: Boolean): Array<Double> {
+        val delta: Double
+        if (outputLayer)
+            delta = (targetOrError - actualResult) * actualResult * (1 - actualResult)
+        else
+            delta = targetOrError * actualResult * (1 - actualResult)
+
+        val backpropError = weights.map { it * delta }.toTypedArray()
+
+        for (i in weights.indices) {
+            weights[i] += ALPHA * delta * input[i]
+        }
+        bias += ALPHA * delta
+
+        return backpropError
     }
 
     fun train(trainingsData: List<Pair<Array<Double>, Double>>) {
         for ((input, expected) in trainingsData) {
-            val actualResult = predict(input)
-            val error = expected - actualResult
-
-            for (weightIndex in weights.indices) {
-                weights[weightIndex] += ALPHA * error * input[weightIndex]
-            }
-            bias += ALPHA * error
+            train(input, expected, predict(input), true)
         }
     }
-}
 
-enum class ActivationFunctions(val function: (Double) -> Double) {
-    SIGNUM({
-        when {
-            it > 0 -> 1.0; it < 0 -> -1.0; else -> 0.0
-        }
-    }),
-    HEAVISIDE({
-        if (it >= 0) 1.0 else 0.0
-    }),
-    ReLU({ max(0.0, it) }),
-    SIGMOID({
-        1 / (1 + Math.E.pow(-it))
-    })
+    override fun toString(): String {
+        return "Perceptron(dimension=$dimension, bias=$bias, weights=${weights.contentToString()})"
+    }
+
 }

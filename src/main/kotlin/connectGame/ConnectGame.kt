@@ -1,6 +1,7 @@
 package de.fridolin1.connectGame
 
 import kotlin.math.max
+import kotlin.random.Random
 
 class ConnectGame(val width: Int = 7, val height: Int = 6) {
     val gameField = Array(width) { Array(height) { FieldStatus.EMPTY } }
@@ -38,16 +39,6 @@ class ConnectGame(val width: Int = 7, val height: Int = 6) {
         return Pair(false, -1)
     }
 
-    private fun removeTop(columnNumber: Int): Int {
-        val column = gameField[columnNumber]
-        for (y in this.height - 1 downTo 0) {
-            if (column[y] == FieldStatus.EMPTY) continue
-            column[y] = FieldStatus.EMPTY
-            return y
-        }
-        return -1
-    }
-
     fun switchPlayer() {
         currentPlayer = if (currentPlayer == FieldStatus.RED) FieldStatus.GREEN else FieldStatus.RED
     }
@@ -61,15 +52,6 @@ class ConnectGame(val width: Int = 7, val height: Int = 6) {
         ConnectionDirection.entries
             .forEach { maxLength = max(getMaxConnectionLengthByDirection(x, y, player, it), maxLength) }
         return maxLength
-    }
-
-    fun getConnectionLengthByDirection(x: Int, y: Int, player: FieldStatus): Map<ConnectionDirection, Int> {
-        val result = mutableMapOf<ConnectionDirection, Int>()
-        for (it in ConnectionDirection.entries) {
-            val length = getMaxConnectionLengthByDirection(x, y, player, it)
-            result[it] = length
-        }
-        return result
     }
 
     fun getMaxConnectionLengthByDirection(x: Int, y: Int, player: FieldStatus, direction: ConnectionDirection): Int {
@@ -111,23 +93,10 @@ class ConnectGame(val width: Int = 7, val height: Int = 6) {
         return sb.toString()
     }
 
-    fun bestColumnsToThrow(): Array<Int> {
-        val throwRates = Array(width) { 0 }
-        for (x in 0..<width) {
-            val dropResult = internalDrop(x)
-            if (!dropResult.first) continue
-            val maxOwnConnectionLength = getMaxConnectionLength(x, dropResult.second, this.currentPlayer)
-            switchPlayer()
-            val maxOppositeBlockLength = getMaxConnectionLength(x, dropResult.second, this.currentPlayer)
-            switchPlayer()
-            if (maxOppositeBlockLength - 1 == 3)
-                throwRates[x] = 3
-            else if (maxOwnConnectionLength == 4)
-                throwRates[x] = 4
-            removeTop(x)
-        }
-//        println(throwRates.contentToString())
-        val max = throwRates.max()
-        return throwRates.map { if (it == max) 1 else 0 }.toTypedArray()
+    fun randomDrop(): Int {
+        val actions = (0..<width).filter { gameField[it][height - 1] == FieldStatus.EMPTY }
+        val action = actions[Random.nextInt(0, actions.size)]
+        drop(action)
+        return action
     }
 }
