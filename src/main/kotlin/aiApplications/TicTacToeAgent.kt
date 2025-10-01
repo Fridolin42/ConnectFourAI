@@ -12,7 +12,7 @@ import kotlin.math.pow
 fun trainTTTAi() {
     val ann = ANN(20, 30, 24, 18, 9)
 
-    val iterations = 2.0.pow(18)
+    val iterations = 2.0.pow(17)
     repeat(iterations.toInt()) {
         print("\rProgress: %.2f%%".format(it / iterations * 100))
 
@@ -66,6 +66,7 @@ fun trainTTTAi() {
         executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
 
         ann.setWeightsToAVG(avgAnnList)
+        avgAnnList.clear()
     }
     println("\nTraining Done")
 
