@@ -7,7 +7,7 @@ import kotlin.random.Random
 @Serializable
 class Perceptron : Cloneable {
     companion object {
-        const val ALPHA = 0.01
+        const val ALPHA = 0.025
     }
 
     fun sigmoid(x: Double): Double {

@@ -2,49 +2,75 @@ package de.fridolin1
 
 import de.fridolin1.ai.ANN
 import de.fridolin1.ai.ReinforcedLearning
+import de.fridolin1.color.getRandomColor
 import de.fridolin1.connectGame.ConnectGame
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.*
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.math.pow
 
 @OptIn(ExperimentalAtomicApi::class)
 fun main() {
-    val ann = ANN(6 * 7 + 1, 43, 86, 129, 86, 7)
+//    val ann = ANN(6 * 7 + 1, 43, 86, 129, 86, 7)
+    val ann = ANN(3, 6, 9, 9, 9, 6)
 
-    val iterations = 750.0
-    println("Iterations: ${iterations.toInt()}")
-
+    val iterations = 2.0.pow(25)
     repeat(iterations.toInt()) {
         val p = it / iterations * 100
-        print("\rProgress: %.4f%%".format(p))
+        print("\rProgress: %.2f%%".format(p))
 
-        val executor = Executors.newWorkStealingPool()
-        val annList = Collections.synchronizedList(mutableListOf<ANN>())
-
-        repeat(60) {
-            executor.submit {
-                val rl1 = ReinforcedLearning(ann.clone(), 0.9)
-                val rl2 = ReinforcedLearning(ann.clone(), 0.9)
-                trainAI(rl1, rl2)
-                annList.add(rl1.ann)
-                annList.add(rl2.ann)
-            }
-        }
-
-        executor.shutdown()
-        executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
-
-        ann.setWeightsToAVG(annList)
+        val c = getRandomColor()
+        val inputVector = arrayOf(c.second.red / 255.0, c.second.green / 255.0, c.second.blue / 255.0)
+        val expectedOutput = Array(6) { i -> if (i == c.first) 1.0 else 0.0 }
+        ann.train(inputVector, expectedOutput)
     }
 
-    println("\nDone")
-    save(ann, "fourWinnsAiV1.json")
-    println("Ai saved")
+    println("\nDone with Training")
 
-    playAgainstAI(ann)
+    save(ann, "ColorDetectorV2.json")
+
+    var correct = 0
+    repeat(1000) {
+        val c = getRandomColor()
+        val inputVector = arrayOf(c.second.red / 255.0, c.second.green / 255.0, c.second.blue / 255.0)
+        val output = ann.compute(inputVector)
+        val indexMax = output.indices.maxBy { i -> output[i] }
+        if (indexMax == c.first) correct++
+    }
+    println("\nCorrect: $correct/1000")
+
+//    val iterations = 750.0
+//    println("Iterations: ${iterations.toInt()}")
+//
+//    repeat(iterations.toInt()) {
+//        val p = it / iterations * 100
+//        print("\rProgress: %.4f%%".format(p))
+//
+//        val executor = Executors.newWorkStealingPool()
+//        val annList = Collections.synchronizedList(mutableListOf<ANN>())
+//
+//        repeat(60) {
+//            executor.submit {
+//                val rl1 = ReinforcedLearning(ann.clone(), 0.9)
+//                val rl2 = ReinforcedLearning(ann.clone(), 0.9)
+//                trainAI(rl1, rl2)
+//                annList.add(rl1.ann)
+//                annList.add(rl2.ann)
+//            }
+//        }
+//
+//        executor.shutdown()
+//        executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
+//
+//        ann.setWeightsToAVG(annList)
+//    }
+//
+//    println("\nDone")
+//    save(ann, "fourWinnsAiV1.json")
+//    println("Ai saved")
+//
+//    playAgainstAI(ann)
 }
 
 fun trainAI(rl1: ReinforcedLearning, rl2: ReinforcedLearning) {
