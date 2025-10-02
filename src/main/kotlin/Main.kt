@@ -2,8 +2,8 @@ package de.fridolin1
 
 import de.fridolin1.ai.ANN
 import de.fridolin1.ai.ReinforcedLearning
-import de.fridolin1.aiApplications.humanTicTacToeGame
 import de.fridolin1.aiApplications.trainTTTAi
+import de.fridolin1.aiApplications.tttAgainstAI
 import de.fridolin1.connectGame.ConnectGame
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -13,7 +13,10 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 @OptIn(ExperimentalAtomicApi::class)
 fun main() {
 
-    trainTTTAi()
+//    trainTTTAi()
+    tttAgainstAI()
+
+
 //    val ann = ANN(6 * 7 + 1, 43, 86, 129, 86, 7)
 
 
@@ -102,6 +105,7 @@ fun playAgainstAI(ann: ANN) {
             while (true) {
                 val action = actionMap.keys.maxBy { actionMap[it]!! }
                 if (game.drop(action)) break
+                else actionMap.remove(action)
             }
         }
     }
@@ -123,4 +127,13 @@ fun save(ann: ANN, filename: String) {
     val writer = file.bufferedWriter()
     writer.write(content)
     writer.close()
+}
+
+fun load(filename: String): ANN {
+    val file = File("./ann/$filename")
+    if (!file.exists()) throw IllegalArgumentException("File ${file.path} don't exists")
+    val reader = file.bufferedReader()
+    val content = reader.readText()
+    val ann = Json.decodeFromString<ANN>(content)
+    return ann
 }

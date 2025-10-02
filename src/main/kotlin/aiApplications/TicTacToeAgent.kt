@@ -2,6 +2,7 @@ package de.fridolin1.aiApplications
 
 import de.fridolin1.ai.ANN
 import de.fridolin1.ai.ReinforcedLearning
+import de.fridolin1.load
 import de.fridolin1.save
 import de.fridolin1.ticTacToe.TicTacToe
 import java.util.*
@@ -53,7 +54,7 @@ fun trainTTTAi() {
                             rl1.reward(-1.0)
                             rl2.reward(1.0)
                         }
-                    } else if(game.isFull()) {
+                    } else if (game.isFull()) {
                         rl1.reward(0.1)
                         rl2.reward(0.1)
                     }
@@ -84,22 +85,36 @@ fun gameToInputVector(game: TicTacToe): Array<Double> {
     return inputVector.toTypedArray()
 }
 
-fun humanTicTacToeGame() {
+fun tttAgainstAI() {
     val game = TicTacToe()
     val scanner = Scanner(System.`in`)
+    val ann = load("TicTacToeAIV1.json")
 
     while (game.running) {
-        while (true) {
-            println()
-            println("------------")
-            println("Player: ${game.currentPlayer}")
-            println(game)
-            print("Row: ")
-            val row = scanner.nextInt()
-            print("Column: ")
-            val column = scanner.nextInt()
-            println()
-            if (game.setField(row, column)) break
+        if (game.currentPlayer != game.firstPlayer)
+            while (true) {
+                println()
+                println("------------")
+                println("Player: ${game.currentPlayer}")
+                println(game)
+                print("Row: ")
+                val row = scanner.nextInt()
+                print("Column: ")
+                val column = scanner.nextInt()
+                println()
+                if (game.setField(row, column)) break
+            }
+        else {
+            val output = ann.compute(gameToInputVector(game))
+            val actionMap = HashMap<Int, Double>()
+            output.indices.forEach { actionMap[it] = output[it] }
+            while (true) {
+                val action = actionMap.keys.maxBy { actionMap[it]!! }
+                val x = action % 3
+                val y = action / 3
+                if (game.setField(x, y)) break
+                else actionMap.remove(action)
+            }
         }
     }
 

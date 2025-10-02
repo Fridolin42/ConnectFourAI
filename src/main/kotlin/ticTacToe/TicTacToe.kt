@@ -36,7 +36,6 @@ class TicTacToe {
 
     fun checkWin(x: Int, y: Int): Boolean {
         val player = gameField[x][y]
-
         // Horizontal (row y)
         val h = (0 until 3).all { gameField[it][y] == player }
         // Vertical (col x)
